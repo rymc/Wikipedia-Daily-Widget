@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <string name="hello">This is a widget, not a regular application. This means it lives on your homescreen. </string>
+    <string name="app_name">WikiWidget</string>
+
+</resources>

@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/WidgetHolder"
+    android:layout_width="fill_parent"
+    android:layout_height="fill_parent"
+    android:gravity="center_horizontal|left"
+    android:orientation="vertical"
+    android:padding="@dimen/widget_margin" >
+
+    <LinearLayout
+        android:id="@+id/LinearLayout2"
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical" >
+
+        <TextView
+            android:id="@+id/storyHeading"
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content"
+            android:shadowColor="#000000"
+            android:shadowDx="2.2"
+            android:shadowDy="2.2"
+            android:shadowRadius="1"
+            android:text="..."
+            android:textAppearance="?android:attr/textAppearanceMedium"
+            android:textColor="#FFFFFFFF" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/LinearLayout2"
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical" >
+
+        <TextView
+            android:id="@+id/storySummary"
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content"
+            android:ellipsize="none"
+            android:hint="..."
+            android:maxLines="22"
+            android:scrollHorizontally="false"
+            android:shadowColor="#000000"
+            android:shadowDx="1.2"
+            android:shadowDy="1.2"
+            android:shadowRadius="1"
+            android:singleLine="false"
+            android:text="..."
+            android:textAppearance="?android:attr/textAppearanceSmall"
+            android:textColor="#FFFFFFFF" />
+    </LinearLayout>
+
+</LinearLayout>

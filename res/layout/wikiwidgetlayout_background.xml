@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/LinearLayout1"
+    android:layout_width="fill_parent"
+    android:layout_height="fill_parent"
+    android:background="@drawable/background"
+    android:gravity="center_horizontal|left"
+    android:orientation="vertical"
+    android:paddingBottom="12dp"
+    android:paddingLeft="24dp"
+    android:paddingRight="24dp"
+    android:paddingTop="12dp" >
+
+    <LinearLayout
+        android:id="@+id/LinearLayout2"
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical" >
+
+        <TextView
+            android:id="@+id/storyHeading"
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content"
+            android:shadowColor="#FFFFFF"
+            android:shadowDx="2.2"
+            android:shadowDy="2.2"
+            android:shadowRadius="1"
+            android:singleLine="true"
+            android:text="..."
+            android:textAppearance="?android:attr/textAppearanceMedium"
+            android:textColor="#000000"
+            android:textStyle="bold"
+            android:typeface="serif" />
+
+    </LinearLayout>
+
+    <FrameLayout
+        android:id="@+id/FrameLayout1"
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content" >
+
+        <TextView
+            android:id="@+id/storySummary"
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content"
+            android:ellipsize="none"
+            android:hint="..."
+            android:scrollHorizontally="false"
+            android:shadowColor="#FFFFFF"
+            android:shadowDx="1.2"
+            android:shadowDy="1.2"
+            android:shadowRadius="1"
+            android:singleLine="false"
+            android:textAppearance="?android:attr/textAppearanceSmall"
+            android:textColor="#000000"
+            android:typeface="serif" />
+
+        <RelativeLayout
+            android:id="@+id/RelativeLayout1"
+            android:layout_width="fill_parent"
+            android:layout_height="80dp"
+            android:layout_gravity="bottom"
+            android:background="@drawable/overlay"
+            android:orientation="vertical" >
+
+        </RelativeLayout>
+    </FrameLayout>
+
+</LinearLayout>
