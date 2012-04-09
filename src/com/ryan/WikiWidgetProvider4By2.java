@@ -8,7 +8,6 @@ public class WikiWidgetProvider4By2 extends WikiWidgetProviderBase {
 
 	public void onUpdate(Context context, AppWidgetManager appWidgetManager,
 			int[] appWidgetIds) {
-
 		
 		super.onUpdate(context, appWidgetManager, appWidgetIds);
 	}
