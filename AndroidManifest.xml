@@ -21,19 +21,19 @@
         </activity>
         	<service android:name=".UpdateStoryService"></service>
         
-         <receiver android:name=".WikiWidgetProvider4By4" android:label="a wiki widget 4 by 4">
+         <receiver android:name=".WikiWidgetProvider4By4" android:label="A Wikipedia Featured Article 4x4">
   			<intent-filter>
         		<action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
   			</intent-filter>
   			<meta-data android:name="android.appwidget.provider" android:resource="@xml/wikiwidgetinfo_4_4" />
 		</receiver>    
-         <receiver android:name=".WikiWidgetProvider4By3" android:label="a wiki widget 4 by 3">
+         <receiver android:name=".WikiWidgetProvider4By3" android:label="A Wikipedia Featured Article 4x3">
   			<intent-filter>
         		<action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
   			</intent-filter>
   			<meta-data android:name="android.appwidget.provider" android:resource="@xml/wikiwidgetinfo_4_3" />
 		</receiver>    
-		  <receiver android:name="WikiWidgetProvider4By2" android:label="a wiki widget 4 by 2">
+		  <receiver android:name="WikiWidgetProvider4By2" android:label="A Wikipedia Featured Article 4x2">
   			<intent-filter>
         		<action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
   			</intent-filter>

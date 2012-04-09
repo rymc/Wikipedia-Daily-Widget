@@ -66,6 +66,7 @@ public class UpdateStoryService extends Service {
 			Spanned summary = Html.fromHtml(story[SUMMARY_INDEX], null, null);
 
 			String strSummary = cleanupSummary(summary.toString());
+			
 
 			// update labels
 			views.setTextViewText(R.id.storyHeading, story[TITLE_INDEX]);

@@ -27,8 +27,8 @@
             android:shadowRadius="1"
             android:singleLine="true"
             android:text="..."
-            android:textAppearance="?android:attr/textAppearanceMedium"
             android:textColor="#000000"
+            android:textSize="15dp"
             android:textStyle="bold"
             android:typeface="serif" />
 
@@ -51,8 +51,8 @@
             android:shadowDy="1.2"
             android:shadowRadius="1"
             android:singleLine="false"
-            android:textAppearance="?android:attr/textAppearanceSmall"
             android:textColor="#000000"
+            android:textSize="12dp"
             android:typeface="serif" />
 
         <RelativeLayout
