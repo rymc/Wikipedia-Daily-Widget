@@ -1,6 +1,9 @@
 package com.rmc.wdfaw;
 
 import java.io.IOException;
+import java.io.InputStream;
+import java.net.MalformedURLException;
+import java.net.URL;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
@@ -12,6 +15,7 @@ import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
+import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
 
 import android.app.PendingIntent;
@@ -44,11 +48,14 @@ public class UpdateStoryService extends Service {
 
 		for (int i = 0; i < allWidgetIds.length; i++) {
 
+		
 			RemoteViews views = new RemoteViews(thisWidget.getPackageName(),
 					R.layout.wikiwidgetlayout_background);
-
+			
+			
 			String[] story = parse(WIKI_FEATURED_ARTICLE_PATH);
 			if (story != null) {
+				System.out.println(story[SUMMARY_INDEX]);
 
 				String storyLink = extractStoryURL(story[SUMMARY_INDEX]);
 
@@ -73,13 +80,12 @@ public class UpdateStoryService extends Service {
 
 				String strSummary = cleanupSummary(summary.toString());
 
+				System.out.println("updating with" + strSummary);
 				// update labels
 				views.setTextViewText(R.id.storyHeading, story[TITLE_INDEX]);
 				views.setTextViewText(R.id.storySummary, strSummary);
 
 				// Tell the AppWidgetManager to perform an update on the current
-				// app
-				// widget
 				appWidgetManager.updateAppWidget(allWidgetIds[i], views);
 			}
 
@@ -136,6 +142,22 @@ public class UpdateStoryService extends Service {
 		String val = null;
 		String summary = null;
 
+		URL url = null;
+		try {
+			url = new URL(urlString);
+		} catch (MalformedURLException e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
+			return null;
+		}
+		InputStream s = null;
+		try {
+			s = url.openConnection().getInputStream();
+		} catch (IOException e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();	
+			return null;
+		}
 		DocumentBuilder builder;
 		try {
 			builder = factory.newDocumentBuilder();
@@ -146,7 +168,7 @@ public class UpdateStoryService extends Service {
 		}
 		Document dom;
 		try {
-			dom = builder.parse(urlString);
+			dom = builder.parse(s);
 		} catch (SAXException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -157,6 +179,13 @@ public class UpdateStoryService extends Service {
 			e.printStackTrace();
 			return null;
 
+		}
+		
+		try {
+			s.close();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
 		}
 		Element root = dom.getDocumentElement();
 

@@ -2,6 +2,8 @@
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android" >
 
     <item
+        android:top="8dp"
+        android:bottom="8dp"
         android:left="8dp"
         android:right="8dp">
         <shape xmlns:android="http://schemas.android.com/apk/res/android" >
