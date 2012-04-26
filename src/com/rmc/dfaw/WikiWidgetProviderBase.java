@@ -1,4 +1,4 @@
-package com.rmc.wdfaw;
+package com.rmc.dfaw;
 
 import android.appwidget.AppWidgetManager;
 import android.appwidget.AppWidgetProvider;
@@ -13,11 +13,9 @@ public abstract class WikiWidgetProviderBase extends AppWidgetProvider {
 	public void onUpdate(Context context, AppWidgetManager appWidgetManager,
 			int[] appWidgetIds) {
 
-		final int numberOfWidgets = appWidgetIds.length;
-		System.out.println("In base update");
+		int numberOfWidgets = appWidgetIds.length;
 
-		// Perform this loop procedure for each app widget that belongs to
-		// provider
+		//update for each widget that belongs to provider
 		for (int i = 0; i < numberOfWidgets; i++) {
 
 			// Build the intent to call the service
@@ -25,10 +23,8 @@ public abstract class WikiWidgetProviderBase extends AppWidgetProvider {
 					UpdateStoryService.class);
 			intent.putExtra(AppWidgetManager.EXTRA_APPWIDGET_IDS, appWidgetIds);
 
-			// Update the widgets via the service
+			// Update the widgets via the intent service
 			context.startService(intent);
-
-			System.out.println("Service Started");
 
 		}
 	}

@@ -1,4 +1,4 @@
-package com.rmc.wdfaw;
+package com.rmc.dfaw;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -15,84 +15,26 @@ import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
-import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
 
+import android.app.IntentService;
 import android.app.PendingIntent;
-import android.app.Service;
 import android.appwidget.AppWidgetManager;
 import android.content.ComponentName;
 import android.content.Intent;
+import android.content.SharedPreferences;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
 import android.net.Uri;
 import android.os.IBinder;
 import android.text.Html;
 import android.text.Spanned;
 import android.widget.RemoteViews;
 
-public class UpdateStoryService extends Service {
+public class UpdateStoryService extends IntentService {
 
-	public void onStart(Intent intent, int startID) {
-		final int TITLE_INDEX = 0;
-		final int SUMMARY_INDEX = 1;
-		final String WIKI_FEATURED_ARTICLE_PATH = "https://en.wikipedia.org/w/api.php?action=featuredfeed&feed=featured&feedformat=atom";
-		String wikiBaseURL = "https://en.wikipedia.org";
-
-		AppWidgetManager appWidgetManager = AppWidgetManager.getInstance(this
-				.getApplicationContext());
-
-		int[] allWidgetIds = intent
-				.getIntArrayExtra(AppWidgetManager.EXTRA_APPWIDGET_IDS);
-
-		ComponentName thisWidget = new ComponentName(getApplicationContext(),
-				WikiWidgetProviderBase.class);
-
-		for (int i = 0; i < allWidgetIds.length; i++) {
-
-		
-			RemoteViews views = new RemoteViews(thisWidget.getPackageName(),
-					R.layout.wikiwidgetlayout_background);
-			
-			
-			String[] story = parse(WIKI_FEATURED_ARTICLE_PATH);
-			if (story != null) {
-				System.out.println(story[SUMMARY_INDEX]);
-
-				String storyLink = extractStoryURL(story[SUMMARY_INDEX]);
-
-				String storyURL = null;
-				if (storyLink != null) {
-					storyURL = wikiBaseURL + storyLink;
-				} else {
-					storyURL = wikiBaseURL;
-					System.err
-							.println("Unable to get URL for the complete article");
-				}
-
-				Intent browserIntent = new Intent(Intent.ACTION_VIEW,
-						Uri.parse(storyURL));
-				PendingIntent openStory = PendingIntent.getActivity(
-						getBaseContext(), 0, browserIntent, 0);
-
-				views.setOnClickPendingIntent(R.id.storySummary, openStory);
-
-				Spanned summary = Html.fromHtml(story[SUMMARY_INDEX], null,
-						null);
-
-				String strSummary = cleanupSummary(summary.toString());
-
-				System.out.println("updating with" + strSummary);
-				// update labels
-				views.setTextViewText(R.id.storyHeading, story[TITLE_INDEX]);
-				views.setTextViewText(R.id.storySummary, strSummary);
-
-				// Tell the AppWidgetManager to perform an update on the current
-				appWidgetManager.updateAppWidget(allWidgetIds[i], views);
-			}
-
-		}
-
-		stopSelf();
-		System.out.println("Finished service");
+	public UpdateStoryService() {
+		super("IntentService");
 	}
 
 	private String extractStoryURL(String summary) {
@@ -146,46 +88,44 @@ public class UpdateStoryService extends Service {
 		try {
 			url = new URL(urlString);
 		} catch (MalformedURLException e1) {
-			// TODO Auto-generated catch block
-			e1.printStackTrace();
+			System.err.println("MalformedURLException " + e1.getCause());
 			return null;
 		}
 		InputStream s = null;
 		try {
 			s = url.openConnection().getInputStream();
 		} catch (IOException e1) {
-			// TODO Auto-generated catch block
-			e1.printStackTrace();	
+			System.err.println("IOException opening url inputsteam"
+					+ e1.getCause());
 			return null;
 		}
 		DocumentBuilder builder;
 		try {
 			builder = factory.newDocumentBuilder();
 		} catch (ParserConfigurationException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			System.err
+					.println("ParserConfigurationException creating dom builder "
+							+ e.getCause());
 			return null;
 		}
 		Document dom;
 		try {
 			dom = builder.parse(s);
 		} catch (SAXException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			System.err.println("SAXException parsing dom" + e.getCause());
 			return null;
 
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			System.err.println("IOException parsing dom" + e.getCause());
 			return null;
 
 		}
-		
+
 		try {
 			s.close();
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			System.err.println("IOException closing url input stream"
+					+ e.getCause());
 		}
 		Element root = dom.getDocumentElement();
 
@@ -209,5 +149,83 @@ public class UpdateStoryService extends Service {
 
 		String[] story = { val, summary };
 		return story;
+	}
+
+	@Override
+	protected void onHandleIntent(Intent intent) {
+		final int TITLE_INDEX = 0;
+		final int SUMMARY_INDEX = 1;
+		final String WIKI_FEATURED_ARTICLE_PATH = "https://en.wikipedia.org/w/api.php?action=featuredfeed&feed=featured&feedformat=atom";
+		String wikiBaseURL = "https://en.wikipedia.org";
+
+		AppWidgetManager appWidgetManager = AppWidgetManager.getInstance(this
+				.getApplicationContext());
+
+		int[] allWidgetIds = intent
+				.getIntArrayExtra(AppWidgetManager.EXTRA_APPWIDGET_IDS);
+
+		ComponentName thisWidget = new ComponentName(getApplicationContext(),
+				WikiWidgetProviderBase.class);
+
+		// load in the sharefprefs to see the update settings.
+		SharedPreferences settings = this.getSharedPreferences(
+				WikiWidgetActivity.SHARED_PREF_NAME, MODE_PRIVATE);
+		boolean wifiOnly = settings.getBoolean(
+				WikiWidgetActivity.WIFI_MOBILE_KEY, false);
+
+		ConnectivityManager connManager = (ConnectivityManager) getSystemService(CONNECTIVITY_SERVICE);
+		NetworkInfo wifiInfo = connManager
+				.getNetworkInfo(ConnectivityManager.TYPE_WIFI);
+		NetworkInfo mobileInfo = connManager
+				.getNetworkInfo(ConnectivityManager.TYPE_MOBILE);
+
+		if ((mobileInfo.isConnected() && !wifiOnly)
+				|| wifiInfo.isConnected()) {
+
+			for (int i = 0; i < allWidgetIds.length; i++) {
+
+				RemoteViews views = new RemoteViews(
+						thisWidget.getPackageName(),
+						R.layout.wikiwidgetlayout_background);
+
+				String[] story = parse(WIKI_FEATURED_ARTICLE_PATH);
+				if (story != null) {
+
+					String storyLink = extractStoryURL(story[SUMMARY_INDEX]);
+
+					String storyURL = null;
+					if (storyLink != null) {
+						storyURL = wikiBaseURL + storyLink;
+					} else {
+						storyURL = wikiBaseURL;
+						System.err
+								.println("Unable to get URL for the complete article");
+					}
+
+					Intent browserIntent = new Intent(Intent.ACTION_VIEW,
+							Uri.parse(storyURL));
+					PendingIntent openStory = PendingIntent.getActivity(
+							getBaseContext(), 0, browserIntent, 0);
+
+					views.setOnClickPendingIntent(R.id.storySummary, openStory);
+
+					Spanned summary = Html.fromHtml(story[SUMMARY_INDEX], null,
+							null);
+
+					String strSummary = cleanupSummary(summary.toString());
+
+					// update labels
+					views.setTextViewText(R.id.storyHeading, story[TITLE_INDEX]);
+					views.setTextViewText(R.id.storySummary, strSummary);
+
+					// Tell the AppWidgetManager to perform an update on the
+					// current
+					appWidgetManager.updateAppWidget(allWidgetIds[i], views);
+				}
+
+			}
+		}
+		stopSelf();
+
 	}
 }

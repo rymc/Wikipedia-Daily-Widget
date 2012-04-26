@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
-    <string name="hello">This is a widget, not a regular application. This means it lives on your homescreen. Add \'Wikipedia Daily Featured Articles\' to your homescreen to see it!</string>
-    <string name="app_name">Wikipedia Daily Featured Articles</string>
+    <string name="hello">This is a widget, not a regular application. This means it lives on your homescreen. Add \'Daily Featured Wikipedia Article\' to your homescreen to see it!</string>
+    <string name="app_name">Daily Featured Wikipedia Article</string>
 
 </resources>
