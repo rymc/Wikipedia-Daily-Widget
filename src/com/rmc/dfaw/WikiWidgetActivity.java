@@ -1,6 +1,8 @@
 package com.rmc.dfaw;
 
 import android.app.Activity;
+import android.appwidget.AppWidgetManager;
+import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.SharedPreferences.Editor;
 import android.os.Bundle;
@@ -57,7 +59,6 @@ public class WikiWidgetActivity extends Activity {
 						settingsEditor.putLong(WIDGET_TYPE_KEY,
 								widgetTypeSpinner.getSelectedItemId());
 						settingsEditor.commit();
-
 					}
 
 					@Override
@@ -73,10 +74,11 @@ public class WikiWidgetActivity extends Activity {
 		} else {
 			// doesn't exist so set it according to the default state
 			Editor settingsEditor = getSPSettingsEditor();
-			settingsEditor.putLong(WIDGET_TYPE_KEY, widgetTypeSpinner.getSelectedItemId());
+			settingsEditor.putLong(WIDGET_TYPE_KEY,
+					widgetTypeSpinner.getSelectedItemId());
 			settingsEditor.commit();
 		}
-
+		
 	}
 
 	public void onCheckboxClicked(View v) {

@@ -43,9 +43,8 @@
 
     <Spinner
         android:id="@+id/spinner1"
-        android:layout_width="175dp"
+        android:layout_width="264dp"
         android:layout_height="wrap_content"
-        android:prompt="@string/prompt_type_of_widget"
-       />
+        android:prompt="@string/prompt_type_of_widget" />
 
 </LinearLayout>

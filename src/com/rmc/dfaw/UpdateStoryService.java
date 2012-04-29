@@ -4,6 +4,9 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.net.URLConnection;
+import java.text.SimpleDateFormat;
+import java.util.Calendar;
 import java.util.LinkedList;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -29,6 +32,7 @@ import android.content.SharedPreferences;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.net.Uri;
+import android.os.Build;
 import android.os.IBinder;
 import android.text.Html;
 import android.text.Spanned;
@@ -40,8 +44,8 @@ public class UpdateStoryService extends IntentService {
 
 	final String WIKI_FEATURED_ARTICLE_PATH = "https://en.wikipedia.org/w/api.php?action=featuredfeed&feed=featured&feedformat=atom";
 	final String WIKI_TODAY_IN_HISTORY_PATH = "https://en.wikipedia.org/w/api.php?action=featuredfeed&feed=onthisday&feedformat=atom";
-
-	final String wikiBaseURL = "https://en.wikipedia.org";
+	final String WIKI_BASE_URL = "https://en.wikipedia.org";
+	final String WIKI_SLASH_WIKI_URL = WIKI_BASE_URL + "/wiki/";
 
 	public UpdateStoryService() {
 		super("IntentService");
@@ -67,13 +71,22 @@ public class UpdateStoryService extends IntentService {
 	 * 
 	 * @param strSummary
 	 *            the Text to perform the replace on
+	 * @param widgetType
 	 * @return the cleaned String
 	 */
-	private String cleanupSummary(String strSummary) {
+	private String cleanupSummary(String strSummary, long widgetType) {
 		strSummary = strSummary.replace('￼', '\0');
 		strSummary = strSummary.replace('\n', '\0');
 		// remove the unicode character that are inserted
 		strSummary = strSummary.replaceAll("[\u0000]", "");
+
+		if (widgetType == WikiWidgetActivity.TODAY_HISTORY_OPTION) {
+			String temp[] = strSummary.split("More anniversaries:");
+			strSummary = temp[0] + "\nTap to see more..";
+		} else if (widgetType == WikiWidgetActivity.FEATURED_OPTION) {
+			String temp[] = strSummary.split("\\(more...\\)");
+			strSummary = temp[0] + "\nTap to see more..";
+		}
 
 		return strSummary;
 
@@ -93,15 +106,19 @@ public class UpdateStoryService extends IntentService {
 			System.err.println("MalformedURLException " + e1.getCause());
 			return null;
 		}
-		InputStream s = null;
+
+		URLConnection s = null;
+		InputStream s2;
 		try {
-			s = url.openConnection().getInputStream();
+			s = url.openConnection();
+			s2 = s.getInputStream();
+
 		} catch (IOException e1) {
 			System.err.println("IOException opening url inputsteam"
 					+ e1.getCause());
 			return null;
 		}
-		return s;
+		return s2;
 	}
 
 	public Document getDOM(InputStream urlInputStream) {
@@ -117,16 +134,17 @@ public class UpdateStoryService extends IntentService {
 			return null;
 		}
 		Document dom;
+
 		try {
 			dom = builder.parse(urlInputStream);
 		} catch (SAXException e) {
-			System.err.println("SAXException parsing dom" + e.getCause());
+			System.err.println("SAXException parsing dom " + e.getCause());
+			e.printStackTrace();
 			return null;
 
 		} catch (IOException e) {
 			System.err.println("IOException parsing dom" + e.getCause());
 			return null;
-
 		}
 
 		try {
@@ -139,18 +157,20 @@ public class UpdateStoryService extends IntentService {
 		return dom;
 	}
 
-	public String[] parseFeaturedArticle(Document dom) {
+	public String[] parseFeed(Document dom) {
+		String[] story = new String[2];
+		if (dom != null) {
 
-		final String HTML_ENTRY_TAG = "entry";
-		final String HTML_TITLE_TAG = "title";
-		final String HTML_SUMMARY_TAG = "summary";
-		String val = null;
-		String summary = null;
+			final String HTML_ENTRY_TAG = "entry";
+			final String HTML_TITLE_TAG = "title";
+			final String HTML_SUMMARY_TAG = "summary";
+			String val = null;
+			String summary = null;
 
-		Element root = dom.getDocumentElement();
+			Element root = dom.getDocumentElement();
 
-		NodeList items = root.getElementsByTagName(HTML_ENTRY_TAG);
-		for (int i = 0; i < items.getLength(); i++) {
+			NodeList items = root.getElementsByTagName(HTML_ENTRY_TAG);
+			int i = items.getLength() - 1;
 			// stops it breaking < 4.0
 			items.item(i).normalize();
 			Node item = items.item(i);
@@ -161,13 +181,17 @@ public class UpdateStoryService extends IntentService {
 				if (name.equalsIgnoreCase(HTML_TITLE_TAG)) {
 					val = property.getFirstChild().getNodeValue();
 				} else if (name.equalsIgnoreCase(HTML_SUMMARY_TAG)) {
-					for (int k = 0; k < property.getChildNodes().getLength(); k++)
+					for (int k = 0; k < property.getChildNodes().getLength(); k++) {
 						summary = property.getFirstChild().getNodeValue();
+					}
 				}
 			}
-		}
 
-		String[] story = { val, summary };
+			story[0] = val;
+			story[1] = summary;
+		} else {
+			story = null;
+		}
 		return story;
 	}
 
@@ -199,8 +223,10 @@ public class UpdateStoryService extends IntentService {
 		String SELECTED_URL;
 		if (widgetType == WikiWidgetActivity.FEATURED_OPTION) {
 			SELECTED_URL = WIKI_FEATURED_ARTICLE_PATH;
-		} else {
+		} else if (widgetType == WikiWidgetActivity.TODAY_HISTORY_OPTION) {
 			SELECTED_URL = WIKI_TODAY_IN_HISTORY_PATH;
+		} else {
+			SELECTED_URL = WIKI_BASE_URL;
 		}
 		if ((mobileInfo.isConnected() && !wifiOnly) || wifiInfo.isConnected()) {
 
@@ -212,12 +238,16 @@ public class UpdateStoryService extends IntentService {
 
 				InputStream urlInputStream = getURLInputStream(SELECTED_URL);
 
-				String[] story = parseFeaturedArticle(getDOM(urlInputStream));
+				String[] story = parseFeed(getDOM(urlInputStream));
 
 				if (story != null) {
 
-					String storyURL = extractFeaturedArticleURL(story);
-
+					String storyURL;
+					if (widgetType == WikiWidgetActivity.FEATURED_OPTION) {
+						storyURL = extractFeaturedArticleURL(story);
+					} else {
+						storyURL = generateTodayInHistoryURL();
+					}
 					Intent browserIntent = new Intent(Intent.ACTION_VIEW,
 							Uri.parse(storyURL));
 					PendingIntent openStory = PendingIntent.getActivity(
@@ -228,24 +258,11 @@ public class UpdateStoryService extends IntentService {
 					Spanned summary = Html.fromHtml(story[SUMMARY_INDEX], null,
 							null);
 
-					String strSummary = cleanupSummary(summary.toString());
-					LinkedList<String> yearToItem;
+					String strSummary = cleanupSummary(summary.toString(),
+							widgetType);
 
 					if (widgetType == WikiWidgetActivity.TODAY_HISTORY_OPTION) {
-						yearToItem = insertNewlines(strSummary);
-
-						String[] s = strSummary
-								.split("([0-9][0-9][0-9][0-9][\\s-])");
-
-						strSummary = "";
-						for (int j = 0; j < s.length; j++) {
-							if (j > 0) {
-								strSummary += yearToItem.get(j - 1) + s[j]
-										+ "\n";
-							} else {
-								strSummary = s[j] + "\n";
-							}
-						}
+						strSummary = formatTodayInHistoryText(strSummary);
 					}
 
 					// update labels
@@ -263,6 +280,33 @@ public class UpdateStoryService extends IntentService {
 
 	}
 
+	private String formatTodayInHistoryText(String strSummary) {
+		LinkedList<String> yearToItem;
+		yearToItem = insertNewlines(strSummary);
+
+		String[] s = strSummary.split("([0-9][0-9][0-9][0-9][\\s-])");
+
+		strSummary = "";
+		for (int j = 0; j < s.length; j++) {
+			if (j > 0) {
+				strSummary += yearToItem.get(j - 1) + s[j] + "\n";
+			} else {
+				strSummary = s[j] + "\n";
+			}
+		}
+		return strSummary;
+	}
+
+	private String generateTodayInHistoryURL() {
+		Calendar calendar = Calendar.getInstance();
+		SimpleDateFormat month = new SimpleDateFormat("MMMMMMMMM");
+		String monthName = month.format(calendar.getTime());
+		SimpleDateFormat day = new SimpleDateFormat("dd");
+		String dayName = day.format(calendar.getTime());
+
+		return WIKI_SLASH_WIKI_URL + monthName + "_" + dayName;
+	}
+
 	private LinkedList<String> insertNewlines(String strSummary) {
 
 		LinkedList<String> yearToItem = new LinkedList<String>();
@@ -271,7 +315,6 @@ public class UpdateStoryService extends IntentService {
 		Matcher m = years.matcher(strSummary);
 		while (m.find()) {
 			yearToItem.add(m.group(0));
-
 		}
 
 		return yearToItem;
@@ -284,9 +327,9 @@ public class UpdateStoryService extends IntentService {
 
 		String storyURL = null;
 		if (storyLink != null) {
-			storyURL = wikiBaseURL + storyLink;
+			storyURL = WIKI_BASE_URL + storyLink;
 		} else {
-			storyURL = wikiBaseURL;
+			storyURL = WIKI_BASE_URL;
 			System.err.println("Unable to get URL for the complete article");
 		}
 
