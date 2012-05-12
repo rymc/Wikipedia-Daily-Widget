@@ -2,6 +2,7 @@ package com.rmc.dfaw;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLConnection;
@@ -11,6 +12,7 @@ import java.util.LinkedList;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import javax.net.ssl.HttpsURLConnection;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
@@ -27,6 +29,7 @@ import android.app.IntentService;
 import android.app.PendingIntent;
 import android.appwidget.AppWidgetManager;
 import android.content.ComponentName;
+import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.net.ConnectivityManager;
@@ -46,6 +49,7 @@ public class UpdateStoryService extends IntentService {
 	final String WIKI_TODAY_IN_HISTORY_PATH = "https://en.wikipedia.org/w/api.php?action=featuredfeed&feed=onthisday&feedformat=atom";
 	final String WIKI_BASE_URL = "https://en.wikipedia.org";
 	final String WIKI_SLASH_WIKI_URL = WIKI_BASE_URL + "/wiki/";
+	private HttpsURLConnection httpsURLConnection;
 
 	public UpdateStoryService() {
 		super("IntentService");
@@ -107,17 +111,31 @@ public class UpdateStoryService extends IntentService {
 			return null;
 		}
 
-		URLConnection s = null;
-		InputStream s2;
+		httpsURLConnection = null;
+		InputStream s2 = null;
+		System.setProperty("http.keepAlive", "false");
 		try {
-			s = url.openConnection();
-			s2 = s.getInputStream();
-
-		} catch (IOException e1) {
-			System.err.println("IOException opening url inputsteam"
-					+ e1.getCause());
+			httpsURLConnection = (HttpsURLConnection) url.openConnection();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
 			return null;
 		}
+		httpsURLConnection.setRequestProperty("Content-Type",
+				"text/plain; charset=UTF8");
+		try {
+			httpsURLConnection.connect();
+		} catch (IOException e) {
+			e.printStackTrace();
+			return null;
+		}
+		try {
+			s2 = httpsURLConnection.getInputStream();
+		} catch (IOException e) {
+			e.printStackTrace();
+			return null;
+		}
+
 		return s2;
 	}
 
@@ -146,14 +164,13 @@ public class UpdateStoryService extends IntentService {
 			System.err.println("IOException parsing dom" + e.getCause());
 			return null;
 		}
-
 		try {
 			urlInputStream.close();
 		} catch (IOException e) {
 			System.err.println("IOException closing url input stream"
 					+ e.getCause());
 		}
-
+		httpsURLConnection.disconnect();
 		return dom;
 	}
 
@@ -211,8 +228,8 @@ public class UpdateStoryService extends IntentService {
 				WikiWidgetActivity.SHARED_PREF_NAME, MODE_PRIVATE);
 		boolean wifiOnly = settings.getBoolean(
 				WikiWidgetActivity.WIFI_MOBILE_KEY, false);
-		long widgetType = settings.getLong(WikiWidgetActivity.WIDGET_TYPE_KEY,
-				0);
+		long widgetTypeLong = settings.getLong(
+				WikiWidgetActivity.WIDGET_TYPE_KEY, 0);
 
 		ConnectivityManager connManager = (ConnectivityManager) getSystemService(CONNECTIVITY_SERVICE);
 		NetworkInfo wifiInfo = connManager
@@ -220,17 +237,21 @@ public class UpdateStoryService extends IntentService {
 		NetworkInfo mobileInfo = connManager
 				.getNetworkInfo(ConnectivityManager.TYPE_MOBILE);
 
-		String SELECTED_URL;
-		if (widgetType == WikiWidgetActivity.FEATURED_OPTION) {
-			SELECTED_URL = WIKI_FEATURED_ARTICLE_PATH;
-		} else if (widgetType == WikiWidgetActivity.TODAY_HISTORY_OPTION) {
-			SELECTED_URL = WIKI_TODAY_IN_HISTORY_PATH;
-		} else {
-			SELECTED_URL = WIKI_BASE_URL;
-		}
 		if ((mobileInfo.isConnected() && !wifiOnly) || wifiInfo.isConnected()) {
 
 			for (int i = 0; i < allWidgetIds.length; i++) {
+				long widgetType = getTypeById(getApplicationContext(),
+						allWidgetIds[i], widgetTypeLong);
+				System.out.println("WikiWidgetActivity.FEATURED_OPTION "
+						+ WikiWidgetActivity.FEATURED_OPTION);
+				String SELECTED_URL;
+				if (widgetType == WikiWidgetActivity.FEATURED_OPTION) {
+					SELECTED_URL = WIKI_FEATURED_ARTICLE_PATH;
+				} else if (widgetType == WikiWidgetActivity.TODAY_HISTORY_OPTION) {
+					SELECTED_URL = WIKI_TODAY_IN_HISTORY_PATH;
+				} else {
+					SELECTED_URL = WIKI_BASE_URL;
+				}
 
 				RemoteViews views = new RemoteViews(
 						thisWidget.getPackageName(),
@@ -277,6 +298,28 @@ public class UpdateStoryService extends IntentService {
 			}
 		}
 		stopSelf();
+
+	}
+
+	private long getTypeById(Context context, int widgetId, long widgetTypeLong) {
+
+		SharedPreferences settings = context.getSharedPreferences(
+				WikiWidgetActivity.SHARED_PREF_NAME, Context.MODE_PRIVATE);
+
+		String widgetIdStr = Integer.toString(widgetId);
+
+		long widgetType = settings.getLong(widgetIdStr, -1);
+		// new widget
+		if (widgetType == -1) {
+			SharedPreferences.Editor settingsEditor = settings.edit();
+			settingsEditor.putLong(widgetIdStr, widgetTypeLong);
+			settingsEditor.commit();
+			System.out.println("NOT FOUND" + widgetId + widgetTypeLong);
+		} else {
+			System.out.println("found " + widgetTypeLong);
+		}
+
+		return widgetType;
 
 	}
 
