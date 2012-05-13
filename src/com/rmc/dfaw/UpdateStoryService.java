@@ -2,6 +2,7 @@ package com.rmc.dfaw;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLConnection;
@@ -11,6 +12,7 @@ import java.util.LinkedList;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import javax.net.ssl.HttpsURLConnection;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
@@ -35,6 +37,7 @@ import android.net.Uri;
 import android.os.Build;
 import android.os.IBinder;
 import android.text.Html;
+import android.text.Spannable;
 import android.text.Spanned;
 import android.widget.RemoteViews;
 
@@ -46,6 +49,7 @@ public class UpdateStoryService extends IntentService {
 	final String WIKI_TODAY_IN_HISTORY_PATH = "https://en.wikipedia.org/w/api.php?action=featuredfeed&feed=onthisday&feedformat=atom";
 	final String WIKI_BASE_URL = "https://en.wikipedia.org";
 	final String WIKI_SLASH_WIKI_URL = WIKI_BASE_URL + "/wiki/";
+	final String YEAR_PATTERN = "([0-9][0-9][0-9][0-9][\\s])([–])([\\s])";
 
 	public UpdateStoryService() {
 		super("IntentService");
@@ -88,6 +92,8 @@ public class UpdateStoryService extends IntentService {
 			strSummary = temp[0] + "\nTap to see more..";
 		}
 
+		strSummary = strSummary.replaceAll("\\(pictured\\)", "");
+
 		return strSummary;
 
 	}
@@ -106,18 +112,25 @@ public class UpdateStoryService extends IntentService {
 			System.err.println("MalformedURLException " + e1.getCause());
 			return null;
 		}
-
-		URLConnection s = null;
-		InputStream s2;
+		System.setProperty("http.keepAlive", "false");
+		HttpsURLConnection s = null;
 		try {
-			s = url.openConnection();
-			s2 = s.getInputStream();
-
-		} catch (IOException e1) {
-			System.err.println("IOException opening url inputsteam"
-					+ e1.getCause());
+			s = (HttpsURLConnection) url.openConnection();
+		} catch (IOException e) {
+			System.err.println("IOException opening url" + e.getCause());
+			e.printStackTrace();
 			return null;
 		}
+
+		InputStream s2 = null;
+		try {
+			s2 = s.getInputStream();
+		} catch (IOException e) {
+			System.err.println("IOException getInputStream" + e.getCause());
+			e.printStackTrace();
+			return null;
+		}
+
 		return s2;
 	}
 
@@ -264,7 +277,6 @@ public class UpdateStoryService extends IntentService {
 					if (widgetType == WikiWidgetActivity.TODAY_HISTORY_OPTION) {
 						strSummary = formatTodayInHistoryText(strSummary);
 					}
-
 					// update labels
 					views.setTextViewText(R.id.storyHeading, story[TITLE_INDEX]);
 					views.setTextViewText(R.id.storySummary, strSummary);
@@ -281,20 +293,31 @@ public class UpdateStoryService extends IntentService {
 	}
 
 	private String formatTodayInHistoryText(String strSummary) {
-		LinkedList<String> yearToItem;
-		yearToItem = insertNewlines(strSummary);
+		LinkedList<String> yearToItem = insertNewlines(strSummary);
 
-		String[] s = strSummary.split("([0-9][0-9][0-9][0-9][\\s-])");
+		String[] s = strSummary.split(YEAR_PATTERN);
 
 		strSummary = "";
 		for (int j = 0; j < s.length; j++) {
 			if (j > 0) {
-				strSummary += yearToItem.get(j - 1) + s[j] + "\n";
+				strSummary += yearToItem.get(j - 1) + "\n" + s[j] + "\n";
 			} else {
-				strSummary = s[j] + "\n";
+				strSummary = s[j].trim() + ".\n";
 			}
 		}
 		return strSummary;
+	}
+
+	private LinkedList<String> insertNewlines(String strSummary) {
+
+		LinkedList<String> yearToItem = new LinkedList<String>();
+		Pattern years = Pattern.compile(YEAR_PATTERN);
+		Matcher m = years.matcher(strSummary);
+		while (m.find()) {
+			yearToItem.add(m.group(1));
+		}
+
+		return yearToItem;
 	}
 
 	private String generateTodayInHistoryURL() {
@@ -305,20 +328,6 @@ public class UpdateStoryService extends IntentService {
 		String dayName = day.format(calendar.getTime());
 
 		return WIKI_SLASH_WIKI_URL + monthName + "_" + dayName;
-	}
-
-	private LinkedList<String> insertNewlines(String strSummary) {
-
-		LinkedList<String> yearToItem = new LinkedList<String>();
-
-		Pattern years = Pattern.compile("([0-9][0-9][0-9][0-9][\\s-])");
-		Matcher m = years.matcher(strSummary);
-		while (m.find()) {
-			yearToItem.add(m.group(0));
-		}
-
-		return yearToItem;
-
 	}
 
 	private String extractFeaturedArticleURL(String[] story) {
