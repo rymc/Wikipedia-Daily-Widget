@@ -153,10 +153,22 @@ public class UpdateStoryService extends IntentService {
 		} catch (SAXException e) {
 			System.err.println("SAXException parsing dom " + e.getCause());
 			e.printStackTrace();
+			try {
+				urlInputStream.close();
+			} catch (IOException e1) {
+				// TODO Auto-generated catch block
+				e1.printStackTrace();
+			}
 			return null;
 
 		} catch (IOException e) {
 			System.err.println("IOException parsing dom" + e.getCause());
+			try {
+				urlInputStream.close();
+			} catch (IOException e1) {
+				// TODO Auto-generated catch block
+				e1.printStackTrace();
+			}
 			return null;
 		}
 
@@ -166,6 +178,7 @@ public class UpdateStoryService extends IntentService {
 			System.err.println("IOException closing url input stream"
 					+ e.getCause());
 		}
+		builder.reset();
 
 		return dom;
 	}
@@ -222,10 +235,9 @@ public class UpdateStoryService extends IntentService {
 		// load in the sharefprefs to see the update settings.
 		SharedPreferences settings = this.getSharedPreferences(
 				WikiWidgetActivity.SHARED_PREF_NAME, MODE_PRIVATE);
-		boolean wifiOnly = settings.getBoolean(
-				WikiWidgetActivity.WIFI_MOBILE_KEY, false);
-		long widgetType = settings.getLong(WikiWidgetActivity.WIDGET_TYPE_KEY,
-				0);
+
+		long settingsWidgetType = settings.getLong(
+				WikiWidgetActivity.WIDGET_TYPE_KEY, 0);
 
 		ConnectivityManager connManager = (ConnectivityManager) getSystemService(CONNECTIVITY_SERVICE);
 		NetworkInfo wifiInfo = connManager
@@ -233,30 +245,92 @@ public class UpdateStoryService extends IntentService {
 		NetworkInfo mobileInfo = connManager
 				.getNetworkInfo(ConnectivityManager.TYPE_MOBILE);
 
-		String SELECTED_URL;
-		if (widgetType == WikiWidgetActivity.FEATURED_OPTION) {
-			SELECTED_URL = WIKI_FEATURED_ARTICLE_PATH;
-		} else if (widgetType == WikiWidgetActivity.TODAY_HISTORY_OPTION) {
-			SELECTED_URL = WIKI_TODAY_IN_HISTORY_PATH;
-		} else {
-			SELECTED_URL = WIKI_BASE_URL;
-		}
-		if ((mobileInfo.isConnected() && !wifiOnly) || wifiInfo.isConnected()) {
+		long savedWidgetType;
+		for (int i = 0; i < allWidgetIds.length; i++) {
+			boolean wifiOnly = false;
+			// for compat reasons need to check both
+			if (settings
+					.contains((allWidgetIds[i]
+							+ WikiWidgetActivity.NETWORK_TYPE_PREF + WikiWidgetActivity.APP_EXTENSION))) {
+				wifiOnly = settings.getBoolean(allWidgetIds[i]
+						+ WikiWidgetActivity.NETWORK_TYPE_PREF
+						+ WikiWidgetActivity.APP_EXTENSION, false);
+				System.out.println("CONTAINS THE NEW NETWORK TYPE " + wifiOnly);
 
-			for (int i = 0; i < allWidgetIds.length; i++) {
+			} else if (settings.contains(WikiWidgetActivity.WIFI_MOBILE_KEY)) {
+				wifiOnly = settings.getBoolean(
+						WikiWidgetActivity.WIFI_MOBILE_KEY, false);
+				SharedPreferences.Editor settingsEditor = settings.edit();
+				settingsEditor.putBoolean(allWidgetIds[i]
+						+ WikiWidgetActivity.NETWORK_TYPE_PREF
+						+ WikiWidgetActivity.APP_EXTENSION, wifiOnly);
+				settingsEditor.commit();
+				System.out.println("DOESNT CONTAIN NEW NETWORK TYPE "
+						+ wifiOnly);
+			}
 
+			if ((mobileInfo.isConnected() && !wifiOnly)
+					|| wifiInfo.isConnected()) {
+
+				if (settings.contains(allWidgetIds[i]
+						+ WikiWidgetActivity.WIDGET_TYPE_PREF
+						+ WikiWidgetActivity.APP_EXTENSION)) {
+					savedWidgetType = settings.getLong(allWidgetIds[i]
+							+ WikiWidgetActivity.WIDGET_TYPE_PREF
+							+ WikiWidgetActivity.APP_EXTENSION, -1);
+					System.out.println(allWidgetIds[i] + " CONTAINS NEW WTYPE "
+							+ savedWidgetType);
+				} else {
+					// new widget so set as settingsWidgetType and record
+					SharedPreferences.Editor settingsEditor = settings.edit();
+					settingsEditor.putLong(allWidgetIds[i]
+							+ WikiWidgetActivity.WIDGET_TYPE_PREF
+							+ WikiWidgetActivity.APP_EXTENSION,
+							settingsWidgetType);
+					settingsEditor.commit();
+					savedWidgetType = settingsWidgetType;
+					System.out.println("DOESNT CONTAINS NEW WTYPE "
+							+ savedWidgetType);
+
+				}
+				String SELECTED_URL;
+				if (savedWidgetType == WikiWidgetActivity.FEATURED_OPTION) {
+					SELECTED_URL = WIKI_FEATURED_ARTICLE_PATH;
+				} else if (settingsWidgetType == WikiWidgetActivity.TODAY_HISTORY_OPTION) {
+					SELECTED_URL = WIKI_TODAY_IN_HISTORY_PATH;
+				} else {
+					SELECTED_URL = WIKI_BASE_URL;
+				}
 				RemoteViews views = new RemoteViews(
 						thisWidget.getPackageName(),
 						R.layout.wikiwidgetlayout_background);
 
 				InputStream urlInputStream = getURLInputStream(SELECTED_URL);
+				Document wikiDocument = getDOM(urlInputStream);
+				if (wikiDocument == null) {
+					try {
+						urlInputStream.close();
+					} catch (IOException e1) {
+						// TODO Auto-generated catch block
+						e1.printStackTrace();
+					}
+					System.out.println("DOCUMENT WAS NULL");
+					try {
+						Thread.sleep(2000);
+					} catch (InterruptedException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
+					urlInputStream = getURLInputStream(SELECTED_URL);
+					wikiDocument = getDOM(urlInputStream);
+				}
 
-				String[] story = parseFeed(getDOM(urlInputStream));
+				String[] story = parseFeed(wikiDocument);
 
 				if (story != null) {
 
 					String storyURL;
-					if (widgetType == WikiWidgetActivity.FEATURED_OPTION) {
+					if (settingsWidgetType == WikiWidgetActivity.FEATURED_OPTION) {
 						storyURL = extractFeaturedArticleURL(story);
 					} else {
 						storyURL = generateTodayInHistoryURL();
@@ -272,9 +346,9 @@ public class UpdateStoryService extends IntentService {
 							null);
 
 					String strSummary = cleanupSummary(summary.toString(),
-							widgetType);
+							settingsWidgetType);
 
-					if (widgetType == WikiWidgetActivity.TODAY_HISTORY_OPTION) {
+					if (settingsWidgetType == WikiWidgetActivity.TODAY_HISTORY_OPTION) {
 						strSummary = formatTodayInHistoryText(strSummary);
 					}
 					// update labels

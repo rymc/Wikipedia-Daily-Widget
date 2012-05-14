@@ -2,15 +2,18 @@ package com.rmc.dfaw;
 
 import android.app.Activity;
 import android.appwidget.AppWidgetManager;
+import android.content.ComponentName;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.SharedPreferences.Editor;
+import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.AdapterView.OnItemSelectedListener;
 import android.widget.ArrayAdapter;
 import android.widget.CheckBox;
+import android.widget.RemoteViews;
 import android.widget.Spinner;
 
 public class WikiWidgetActivity extends Activity {
@@ -19,13 +22,18 @@ public class WikiWidgetActivity extends Activity {
 	public static String SHARED_PREF_NAME = "WikiWidgetSettings";
 	public static long FEATURED_OPTION = 0;
 	public static long TODAY_HISTORY_OPTION = 1;
+	public static final String APP_EXTENSION = "WDW";
+	public static final String WIDGET_TYPE_PREF = "WIDGET_TYPE";
+	public static final String NETWORK_TYPE_PREF = "NETWORK_TYPE";
+	private int widgetID;
+	private Spinner widgetTypeSpinner;
 
 	/** Called when the activity is first created. */
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.main);
-
+		setResult(RESULT_CANCELED);
 		// get checkbox
 		CheckBox wifiOnlyCB = (CheckBox) findViewById(R.id.checkBox1);
 
@@ -43,7 +51,7 @@ public class WikiWidgetActivity extends Activity {
 			settingsEditor.commit();
 		}
 
-		final Spinner widgetTypeSpinner = (Spinner) findViewById(R.id.spinner1);
+		widgetTypeSpinner = (Spinner) findViewById(R.id.spinner1);
 		ArrayAdapter<?> adapter = ArrayAdapter.createFromResource(this,
 				R.array.widgetTypes, android.R.layout.simple_spinner_item);
 		adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
@@ -78,7 +86,55 @@ public class WikiWidgetActivity extends Activity {
 					widgetTypeSpinner.getSelectedItemId());
 			settingsEditor.commit();
 		}
-		
+
+		Intent intent = getIntent();
+		Bundle extras = intent.getExtras();
+		if (extras != null) {
+			widgetID = extras.getInt(AppWidgetManager.EXTRA_APPWIDGET_ID,
+					AppWidgetManager.INVALID_APPWIDGET_ID);
+		}
+
+	}
+
+	public void onSave(View v) {
+
+		long spinnerId = widgetTypeSpinner.getSelectedItemId();
+		SharedPreferences settings = this.getSharedPreferences(
+				SHARED_PREF_NAME, MODE_PRIVATE);
+		SharedPreferences.Editor settingsEditor = settings.edit();
+		settingsEditor.putLong(widgetID + WikiWidgetActivity.WIDGET_TYPE_PREF
+				+ WikiWidgetActivity.APP_EXTENSION, spinnerId);
+		System.out.println("onSave " + widgetID + spinnerId);
+		boolean wifiOnly = settings.getBoolean(WIFI_MOBILE_KEY, false);
+		settingsEditor.putBoolean(widgetID + NETWORK_TYPE_PREF + APP_EXTENSION,
+				wifiOnly);
+
+		settingsEditor.commit();
+
+		// // Build the intent to call the service
+		Intent intent = new Intent(this.getApplicationContext(),
+				UpdateStoryService.class);
+		int[] mAppWidgetArr = new int[1];
+		mAppWidgetArr[0] = widgetID;
+		intent.putExtra(AppWidgetManager.EXTRA_APPWIDGET_IDS, mAppWidgetArr);
+
+		// Update the widgets via the intent service
+		this.startService(intent);
+
+		// Make sure we pass back the original appWidgetId
+		Intent resultValue = new Intent();
+		resultValue.putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, widgetID);
+		setResult(RESULT_OK, resultValue);
+		finish();
+	}
+
+	public void removeIcon(View v) {
+		ComponentName componentToDisable = new ComponentName("com.rmc.dfaw",
+				"com.rmc.dfaw.WikiWidgetActivity");
+
+		getPackageManager().setComponentEnabledSetting(componentToDisable,
+				PackageManager.COMPONENT_ENABLED_STATE_DISABLED,
+				PackageManager.DONT_KILL_APP);
 	}
 
 	public void onCheckboxClicked(View v) {
