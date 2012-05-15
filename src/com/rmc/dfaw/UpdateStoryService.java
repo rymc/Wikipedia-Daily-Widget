@@ -39,6 +39,7 @@ import android.os.IBinder;
 import android.text.Html;
 import android.text.Spannable;
 import android.text.Spanned;
+import android.util.Log;
 import android.widget.RemoteViews;
 
 public class UpdateStoryService extends IntentService {
@@ -49,7 +50,7 @@ public class UpdateStoryService extends IntentService {
 	final String WIKI_TODAY_IN_HISTORY_PATH = "https://en.wikipedia.org/w/api.php?action=featuredfeed&feed=onthisday&feedformat=atom";
 	final String WIKI_BASE_URL = "https://en.wikipedia.org";
 	final String WIKI_SLASH_WIKI_URL = WIKI_BASE_URL + "/wiki/";
-	final String YEAR_PATTERN = "([0-9][0-9][0-9][0-9][\\s])([–])([\\s])";
+	final String YEAR_PATTERN = "([0-9]{3,4}[\\s])([–])([\\s])";
 
 	public UpdateStoryService() {
 		super("IntentService");
@@ -104,45 +105,30 @@ public class UpdateStoryService extends IntentService {
 		return null;
 	}
 
-	public InputStream getURLInputStream(String urlString) {
-		URL url = null;
-		try {
-			url = new URL(urlString);
-		} catch (MalformedURLException e1) {
-			System.err.println("MalformedURLException " + e1.getCause());
-			return null;
-		}
-		System.setProperty("http.keepAlive", "false");
-		HttpsURLConnection s = null;
-		try {
-			s = (HttpsURLConnection) url.openConnection();
-		} catch (IOException e) {
-			System.err.println("IOException opening url" + e.getCause());
-			e.printStackTrace();
-			return null;
-		}
+	public InputStream getURLInputStream(HttpsURLConnection s) {
+		if (s != null) {
+			InputStream s2 = null;
+			try {
+				s2 = s.getInputStream();
+			} catch (IOException e) {
+				Log.e("UpdateStory", "IOException getInputStream" + e.getCause());
+				e.printStackTrace();
+				return null;
+			}
 
-		InputStream s2 = null;
-		try {
-			s2 = s.getInputStream();
-		} catch (IOException e) {
-			System.err.println("IOException getInputStream" + e.getCause());
-			e.printStackTrace();
-			return null;
+			return s2;
 		}
-
-		return s2;
+		return null;
 	}
 
-	public Document getDOM(InputStream urlInputStream) {
+	public Document getDOM(InputStream urlInputStream, HttpsURLConnection s) {
 		DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
 
 		DocumentBuilder builder;
 		try {
 			builder = factory.newDocumentBuilder();
 		} catch (ParserConfigurationException e) {
-			System.err
-					.println("ParserConfigurationException creating dom builder "
+			Log.e("UpdateStory", "ParserConfigurationException creating dom builder "
 							+ e.getCause());
 			return null;
 		}
@@ -151,10 +137,11 @@ public class UpdateStoryService extends IntentService {
 		try {
 			dom = builder.parse(urlInputStream);
 		} catch (SAXException e) {
-			System.err.println("SAXException parsing dom " + e.getCause());
+			Log.e("UpdateStory", "SAXException parsing dom " + e.getCause());
 			e.printStackTrace();
 			try {
 				urlInputStream.close();
+				s.disconnect();
 			} catch (IOException e1) {
 				// TODO Auto-generated catch block
 				e1.printStackTrace();
@@ -162,9 +149,10 @@ public class UpdateStoryService extends IntentService {
 			return null;
 
 		} catch (IOException e) {
-			System.err.println("IOException parsing dom" + e.getCause());
+			Log.e("UpdateStory","IOException parsing dom" + e.getCause());
 			try {
 				urlInputStream.close();
+				s.disconnect();
 			} catch (IOException e1) {
 				// TODO Auto-generated catch block
 				e1.printStackTrace();
@@ -174,8 +162,9 @@ public class UpdateStoryService extends IntentService {
 
 		try {
 			urlInputStream.close();
+			s.disconnect();
 		} catch (IOException e) {
-			System.err.println("IOException closing url input stream"
+			Log.e("UpdateStory","IOException closing url input stream"
 					+ e.getCause());
 		}
 		builder.reset();
@@ -248,6 +237,7 @@ public class UpdateStoryService extends IntentService {
 		long savedWidgetType;
 		for (int i = 0; i < allWidgetIds.length; i++) {
 			boolean wifiOnly = false;
+			boolean configDone = true;
 			// for compat reasons need to check both
 			if (settings
 					.contains((allWidgetIds[i]
@@ -255,7 +245,7 @@ public class UpdateStoryService extends IntentService {
 				wifiOnly = settings.getBoolean(allWidgetIds[i]
 						+ WikiWidgetActivity.NETWORK_TYPE_PREF
 						+ WikiWidgetActivity.APP_EXTENSION, false);
-				System.out.println("CONTAINS THE NEW NETWORK TYPE " + wifiOnly);
+				Log.w("UpdateStory", "WDW CONTAINS NETWORKPREF " + wifiOnly);
 
 			} else if (settings.contains(WikiWidgetActivity.WIFI_MOBILE_KEY)) {
 				wifiOnly = settings.getBoolean(
@@ -265,12 +255,15 @@ public class UpdateStoryService extends IntentService {
 						+ WikiWidgetActivity.NETWORK_TYPE_PREF
 						+ WikiWidgetActivity.APP_EXTENSION, wifiOnly);
 				settingsEditor.commit();
-				System.out.println("DOESNT CONTAIN NEW NETWORK TYPE "
+				Log.w("UpdateStory","WDW DOESNT CONTAIN NETWORKPREF "
 						+ wifiOnly);
+			} else {
+				Log.w("UpdateStory", "CONFIG NOT DONE");
+				configDone = false;
 			}
 
-			if ((mobileInfo.isConnected() && !wifiOnly)
-					|| wifiInfo.isConnected()) {
+			if (((mobileInfo.isConnected() && !wifiOnly) || wifiInfo
+					.isConnected()) && configDone) {
 
 				if (settings.contains(allWidgetIds[i]
 						+ WikiWidgetActivity.WIDGET_TYPE_PREF
@@ -278,7 +271,7 @@ public class UpdateStoryService extends IntentService {
 					savedWidgetType = settings.getLong(allWidgetIds[i]
 							+ WikiWidgetActivity.WIDGET_TYPE_PREF
 							+ WikiWidgetActivity.APP_EXTENSION, -1);
-					System.out.println(allWidgetIds[i] + " CONTAINS NEW WTYPE "
+					Log.v("UpdateStory",allWidgetIds[i] + " WDW CONTAINS TYPEPREF "
 							+ savedWidgetType);
 				} else {
 					// new widget so set as settingsWidgetType and record
@@ -289,7 +282,7 @@ public class UpdateStoryService extends IntentService {
 							settingsWidgetType);
 					settingsEditor.commit();
 					savedWidgetType = settingsWidgetType;
-					System.out.println("DOESNT CONTAINS NEW WTYPE "
+					Log.v("UpdateStory","WDW DOESNT CONTAIN TYPEPREF "
 							+ savedWidgetType);
 
 				}
@@ -305,8 +298,9 @@ public class UpdateStoryService extends IntentService {
 						thisWidget.getPackageName(),
 						R.layout.wikiwidgetlayout_background);
 
-				InputStream urlInputStream = getURLInputStream(SELECTED_URL);
-				Document wikiDocument = getDOM(urlInputStream);
+				HttpsURLConnection s = getHTTPSConnection(SELECTED_URL);
+				InputStream urlInputStream = getURLInputStream(s);
+				Document wikiDocument = getDOM(urlInputStream, s);
 				if (wikiDocument == null) {
 					try {
 						urlInputStream.close();
@@ -314,18 +308,21 @@ public class UpdateStoryService extends IntentService {
 						// TODO Auto-generated catch block
 						e1.printStackTrace();
 					}
-					System.out.println("DOCUMENT WAS NULL");
+					s.disconnect();
+					Log.e("UpdateStory", "WDW Document was NULL");
 					try {
 						Thread.sleep(2000);
 					} catch (InterruptedException e) {
 						// TODO Auto-generated catch block
 						e.printStackTrace();
 					}
-					urlInputStream = getURLInputStream(SELECTED_URL);
-					wikiDocument = getDOM(urlInputStream);
+					s = getHTTPSConnection(SELECTED_URL);
+					urlInputStream = getURLInputStream(s);
+					wikiDocument = getDOM(urlInputStream, s);
 				}
 
 				String[] story = parseFeed(wikiDocument);
+				s.disconnect();
 
 				if (story != null) {
 
@@ -364,6 +361,27 @@ public class UpdateStoryService extends IntentService {
 		}
 		stopSelf();
 
+	}
+
+	private HttpsURLConnection getHTTPSConnection(String urlString) {
+		URL url = null;
+		try {
+			url = new URL(urlString);
+		} catch (MalformedURLException e1) {
+			Log.e("UpdateStory","MalformedURLException " + e1.getCause());
+			return null;
+		}
+
+		System.setProperty("http.keepAlive", "false");
+		HttpsURLConnection s;
+		try {
+			s = (HttpsURLConnection) url.openConnection();
+		} catch (IOException e) {
+			Log.e("UpdateStory","IOException opening url" + e.getCause());
+			e.printStackTrace();
+			return null;
+		}
+		return s;
 	}
 
 	private String formatTodayInHistoryText(String strSummary) {
@@ -413,7 +431,7 @@ public class UpdateStoryService extends IntentService {
 			storyURL = WIKI_BASE_URL + storyLink;
 		} else {
 			storyURL = WIKI_BASE_URL;
-			System.err.println("Unable to get URL for the complete article");
+			Log.e("UpdateStory", "Unable to get URL for the complete article");
 		}
 
 		return storyURL;

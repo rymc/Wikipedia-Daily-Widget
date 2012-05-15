@@ -8,6 +8,7 @@ import android.content.SharedPreferences;
 import android.content.SharedPreferences.Editor;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.AdapterView.OnItemSelectedListener;
@@ -104,7 +105,7 @@ public class WikiWidgetActivity extends Activity {
 		SharedPreferences.Editor settingsEditor = settings.edit();
 		settingsEditor.putLong(widgetID + WikiWidgetActivity.WIDGET_TYPE_PREF
 				+ WikiWidgetActivity.APP_EXTENSION, spinnerId);
-		System.out.println("onSave " + widgetID + spinnerId);
+		Log.v("WDW Configuration","onSave " + widgetID + spinnerId);
 		boolean wifiOnly = settings.getBoolean(WIFI_MOBILE_KEY, false);
 		settingsEditor.putBoolean(widgetID + NETWORK_TYPE_PREF + APP_EXTENSION,
 				wifiOnly);

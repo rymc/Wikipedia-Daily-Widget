@@ -7,6 +7,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.SharedPreferences.Editor;
+import android.util.Log;
 import android.widget.RemoteViews;
 
 public abstract class WikiWidgetProviderBase extends AppWidgetProvider {
@@ -27,7 +28,7 @@ public abstract class WikiWidgetProviderBase extends AppWidgetProvider {
 						+ WikiWidgetActivity.NETWORK_TYPE_PREF
 						+ WikiWidgetActivity.APP_EXTENSION);
 			} else {
-				System.err.println("Unknown widget type not deleted");
+				Log.e("UpdateStory", "Unknown widget type not deleted");
 			}
 			if (settings.contains(appWidgetIds[i]
 					+ WikiWidgetActivity.NETWORK_TYPE_PREF
@@ -36,8 +37,8 @@ public abstract class WikiWidgetProviderBase extends AppWidgetProvider {
 						+ WikiWidgetActivity.NETWORK_TYPE_PREF
 						+ WikiWidgetActivity.APP_EXTENSION);
 			} else {
-				System.err
-						.println("Unknown network type for widget not deleted");
+				Log.e("UpdateStory",
+						"Unknown network type for widget not deleted");
 			}
 		}
 	}

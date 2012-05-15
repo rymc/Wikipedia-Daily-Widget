@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
-    <string name="intro_text">This is a widget, not a regular application. This means it lives on your homescreen. Add \'Wikipedia Daily Widget\' to your homescreen to see it!\n\n</string>
+    <string name="intro_text">This is a widget, not a regular application. This means it lives on your homescreen. Add \'Wikipedia Daily Widget\' to your homescreen to see it!\n\nYou can change the widget settings when you add it to your home screen!</string>
     <string name="app_name">Wikipedia Daily Widget</string>
     <string name="settings_head_text">Settings</string>
     <string name="settings_type_of_widget">Type of widget</string>
