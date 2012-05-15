@@ -111,7 +111,8 @@ public class UpdateStoryService extends IntentService {
 			try {
 				s2 = s.getInputStream();
 			} catch (IOException e) {
-				Log.e("UpdateStory", "IOException getInputStream" + e.getCause());
+				Log.e("UpdateStory",
+						"IOException getInputStream" + e.getCause());
 				e.printStackTrace();
 				return null;
 			}
@@ -128,7 +129,8 @@ public class UpdateStoryService extends IntentService {
 		try {
 			builder = factory.newDocumentBuilder();
 		} catch (ParserConfigurationException e) {
-			Log.e("UpdateStory", "ParserConfigurationException creating dom builder "
+			Log.e("UpdateStory",
+					"ParserConfigurationException creating dom builder "
 							+ e.getCause());
 			return null;
 		}
@@ -149,7 +151,7 @@ public class UpdateStoryService extends IntentService {
 			return null;
 
 		} catch (IOException e) {
-			Log.e("UpdateStory","IOException parsing dom" + e.getCause());
+			Log.e("UpdateStory", "IOException parsing dom" + e.getCause());
 			try {
 				urlInputStream.close();
 				s.disconnect();
@@ -164,8 +166,8 @@ public class UpdateStoryService extends IntentService {
 			urlInputStream.close();
 			s.disconnect();
 		} catch (IOException e) {
-			Log.e("UpdateStory","IOException closing url input stream"
-					+ e.getCause());
+			Log.e("UpdateStory",
+					"IOException closing url input stream" + e.getCause());
 		}
 		builder.reset();
 
@@ -255,7 +257,7 @@ public class UpdateStoryService extends IntentService {
 						+ WikiWidgetActivity.NETWORK_TYPE_PREF
 						+ WikiWidgetActivity.APP_EXTENSION, wifiOnly);
 				settingsEditor.commit();
-				Log.w("UpdateStory","WDW DOESNT CONTAIN NETWORKPREF "
+				Log.w("UpdateStory", "WDW DOESNT CONTAIN NETWORKPREF "
 						+ wifiOnly);
 			} else {
 				Log.w("UpdateStory", "CONFIG NOT DONE");
@@ -271,8 +273,8 @@ public class UpdateStoryService extends IntentService {
 					savedWidgetType = settings.getLong(allWidgetIds[i]
 							+ WikiWidgetActivity.WIDGET_TYPE_PREF
 							+ WikiWidgetActivity.APP_EXTENSION, -1);
-					Log.v("UpdateStory",allWidgetIds[i] + " WDW CONTAINS TYPEPREF "
-							+ savedWidgetType);
+					Log.v("UpdateStory", allWidgetIds[i]
+							+ " WDW CONTAINS TYPEPREF " + savedWidgetType);
 				} else {
 					// new widget so set as settingsWidgetType and record
 					SharedPreferences.Editor settingsEditor = settings.edit();
@@ -282,7 +284,7 @@ public class UpdateStoryService extends IntentService {
 							settingsWidgetType);
 					settingsEditor.commit();
 					savedWidgetType = settingsWidgetType;
-					Log.v("UpdateStory","WDW DOESNT CONTAIN TYPEPREF "
+					Log.v("UpdateStory", "WDW DOESNT CONTAIN TYPEPREF "
 							+ savedWidgetType);
 
 				}
@@ -299,68 +301,75 @@ public class UpdateStoryService extends IntentService {
 						R.layout.wikiwidgetlayout_background);
 
 				HttpsURLConnection s = getHTTPSConnection(SELECTED_URL);
-				InputStream urlInputStream = getURLInputStream(s);
-				Document wikiDocument = getDOM(urlInputStream, s);
-				if (wikiDocument == null) {
-					try {
-						urlInputStream.close();
-					} catch (IOException e1) {
-						// TODO Auto-generated catch block
-						e1.printStackTrace();
+				Document wikiDocument = null;
+				if (s != null) {
+					InputStream urlInputStream = getURLInputStream(s);
+					if (urlInputStream != null) {
+						wikiDocument = getDOM(urlInputStream, s);
+						if (wikiDocument == null) {
+							try {
+								urlInputStream.close();
+							} catch (IOException e1) {
+								// TODO Auto-generated catch block
+								e1.printStackTrace();
+							}
+							s.disconnect();
+							Log.e("UpdateStory", "WDW Document was NULL");
+							try {
+								Thread.sleep(2000);
+							} catch (InterruptedException e) {
+								// TODO Auto-generated catch block
+								e.printStackTrace();
+							}
+							s = getHTTPSConnection(SELECTED_URL);
+							urlInputStream = getURLInputStream(s);
+							wikiDocument = getDOM(urlInputStream, s);
+						}
+
+						String[] story = parseFeed(wikiDocument);
+						s.disconnect();
+
+						if (story != null) {
+
+							String storyURL;
+							if (settingsWidgetType == WikiWidgetActivity.FEATURED_OPTION) {
+								storyURL = extractFeaturedArticleURL(story);
+							} else {
+								storyURL = generateTodayInHistoryURL();
+							}
+							Intent browserIntent = new Intent(
+									Intent.ACTION_VIEW, Uri.parse(storyURL));
+							PendingIntent openStory = PendingIntent
+									.getActivity(getBaseContext(), 0,
+											browserIntent, 0);
+
+							views.setOnClickPendingIntent(R.id.storySummary,
+									openStory);
+
+							Spanned summary = Html.fromHtml(
+									story[SUMMARY_INDEX], null, null);
+
+							String strSummary = cleanupSummary(
+									summary.toString(), settingsWidgetType);
+
+							if (settingsWidgetType == WikiWidgetActivity.TODAY_HISTORY_OPTION) {
+								strSummary = formatTodayInHistoryText(strSummary);
+							}
+							// update labels
+							views.setTextViewText(R.id.storyHeading,
+									story[TITLE_INDEX]);
+							views.setTextViewText(R.id.storySummary, strSummary);
+
+							// Tell the AppWidgetManager to perform an update on
+							// the
+							// current
+							appWidgetManager.updateAppWidget(allWidgetIds[i],
+									views);
+						}
 					}
-					s.disconnect();
-					Log.e("UpdateStory", "WDW Document was NULL");
-					try {
-						Thread.sleep(2000);
-					} catch (InterruptedException e) {
-						// TODO Auto-generated catch block
-						e.printStackTrace();
-					}
-					s = getHTTPSConnection(SELECTED_URL);
-					urlInputStream = getURLInputStream(s);
-					wikiDocument = getDOM(urlInputStream, s);
 				}
-
-				String[] story = parseFeed(wikiDocument);
-				s.disconnect();
-
-				if (story != null) {
-
-					String storyURL;
-					if (settingsWidgetType == WikiWidgetActivity.FEATURED_OPTION) {
-						storyURL = extractFeaturedArticleURL(story);
-					} else {
-						storyURL = generateTodayInHistoryURL();
-					}
-					Intent browserIntent = new Intent(Intent.ACTION_VIEW,
-							Uri.parse(storyURL));
-					PendingIntent openStory = PendingIntent.getActivity(
-							getBaseContext(), 0, browserIntent, 0);
-
-					views.setOnClickPendingIntent(R.id.storySummary, openStory);
-
-					Spanned summary = Html.fromHtml(story[SUMMARY_INDEX], null,
-							null);
-
-					String strSummary = cleanupSummary(summary.toString(),
-							settingsWidgetType);
-
-					if (settingsWidgetType == WikiWidgetActivity.TODAY_HISTORY_OPTION) {
-						strSummary = formatTodayInHistoryText(strSummary);
-					}
-					// update labels
-					views.setTextViewText(R.id.storyHeading, story[TITLE_INDEX]);
-					views.setTextViewText(R.id.storySummary, strSummary);
-
-					// Tell the AppWidgetManager to perform an update on the
-					// current
-					appWidgetManager.updateAppWidget(allWidgetIds[i], views);
-				}
-
 			}
 		}
-		stopSelf();
-
 	}
 
 	private HttpsURLConnection getHTTPSConnection(String urlString) {
@@ -368,7 +377,7 @@ public class UpdateStoryService extends IntentService {
 		try {
 			url = new URL(urlString);
 		} catch (MalformedURLException e1) {
-			Log.e("UpdateStory","MalformedURLException " + e1.getCause());
+			Log.e("UpdateStory", "MalformedURLException " + e1.getCause());
 			return null;
 		}
 
@@ -377,7 +386,7 @@ public class UpdateStoryService extends IntentService {
 		try {
 			s = (HttpsURLConnection) url.openConnection();
 		} catch (IOException e) {
-			Log.e("UpdateStory","IOException opening url" + e.getCause());
+			Log.e("UpdateStory", "IOException opening url" + e.getCause());
 			e.printStackTrace();
 			return null;
 		}
