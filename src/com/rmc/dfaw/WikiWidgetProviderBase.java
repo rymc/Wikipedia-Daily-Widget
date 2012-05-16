@@ -46,20 +46,14 @@ public abstract class WikiWidgetProviderBase extends AppWidgetProvider {
 	public void onUpdate(Context context, AppWidgetManager appWidgetManager,
 			int[] appWidgetIds) {
 
-		int numberOfWidgets = appWidgetIds.length;
+		// Build the intent to call the service
+		Intent intent = new Intent(context.getApplicationContext(),
+				UpdateStoryService.class);
+		intent.putExtra(AppWidgetManager.EXTRA_APPWIDGET_IDS, appWidgetIds);
 
-		// update for each widget that belongs to provider
-		for (int i = 0; i < numberOfWidgets; i++) {
+		// Update the widgets via the intent service
+		context.startService(intent);
 
-			// Build the intent to call the service
-			Intent intent = new Intent(context.getApplicationContext(),
-					UpdateStoryService.class);
-			intent.putExtra(AppWidgetManager.EXTRA_APPWIDGET_IDS, appWidgetIds);
-
-			// Update the widgets via the intent service
-			context.startService(intent);
-
-		}
 	}
 
 }

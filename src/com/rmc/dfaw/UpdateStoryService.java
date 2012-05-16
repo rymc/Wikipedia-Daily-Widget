@@ -1,5 +1,6 @@
 package com.rmc.dfaw;
 
+import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
@@ -109,14 +110,14 @@ public class UpdateStoryService extends IntentService {
 		if (s != null) {
 			InputStream s2 = null;
 			try {
-				s2 = s.getInputStream();
+				s2 = new BufferedInputStream(s.getInputStream());
 			} catch (IOException e) {
 				Log.e("UpdateStory",
 						"IOException getInputStream" + e.getCause());
 				e.printStackTrace();
 				return null;
 			}
-
+			
 			return s2;
 		}
 		return null;
@@ -235,7 +236,6 @@ public class UpdateStoryService extends IntentService {
 				.getNetworkInfo(ConnectivityManager.TYPE_WIFI);
 		NetworkInfo mobileInfo = connManager
 				.getNetworkInfo(ConnectivityManager.TYPE_MOBILE);
-
 		long savedWidgetType;
 		for (int i = 0; i < allWidgetIds.length; i++) {
 			boolean wifiOnly = false;
@@ -382,7 +382,7 @@ public class UpdateStoryService extends IntentService {
 		}
 
 		System.setProperty("http.keepAlive", "false");
-		HttpsURLConnection s;
+		HttpsURLConnection s = null;
 		try {
 			s = (HttpsURLConnection) url.openConnection();
 		} catch (IOException e) {
@@ -390,6 +390,7 @@ public class UpdateStoryService extends IntentService {
 			e.printStackTrace();
 			return null;
 		}
+		s.setDoOutput(true);
 		return s;
 	}
 
