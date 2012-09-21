@@ -5,12 +5,6 @@
     android:gravity="center_horizontal"
     android:orientation="vertical" >
 
-    <TextView
-        android:layout_width="fill_parent"
-        android:layout_height="wrap_content"
-        android:gravity="center_horizontal"
-        android:text="@string/intro_text" android:includeFontPadding="true"/>
-
     <LinearLayout
         android:layout_width="fill_parent"
         android:layout_height="wrap_content"
@@ -31,7 +25,6 @@
             android:checked="false"
             android:onClick="onCheckboxClicked"
             android:text="Only update on WiFi" />
-
     </LinearLayout>
 
     <TextView
@@ -46,5 +39,12 @@
         android:layout_width="264dp"
         android:layout_height="wrap_content"
         android:prompt="@string/prompt_type_of_widget" />
+
+    <Button
+        android:id="@+id/button1"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:onClick="onSave"
+        android:text="Save" />
 
 </LinearLayout>

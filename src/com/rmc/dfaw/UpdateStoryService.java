@@ -1,5 +1,6 @@
 package com.rmc.dfaw;
 
+import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
@@ -29,7 +30,6 @@ import android.app.IntentService;
 import android.app.PendingIntent;
 import android.appwidget.AppWidgetManager;
 import android.content.ComponentName;
-import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.net.ConnectivityManager;
@@ -38,7 +38,9 @@ import android.net.Uri;
 import android.os.Build;
 import android.os.IBinder;
 import android.text.Html;
+import android.text.Spannable;
 import android.text.Spanned;
+import android.util.Log;
 import android.widget.RemoteViews;
 
 public class UpdateStoryService extends IntentService {
@@ -49,167 +51,16 @@ public class UpdateStoryService extends IntentService {
 	final String WIKI_TODAY_IN_HISTORY_PATH = "https://en.wikipedia.org/w/api.php?action=featuredfeed&feed=onthisday&feedformat=atom";
 	final String WIKI_BASE_URL = "https://en.wikipedia.org";
 	final String WIKI_SLASH_WIKI_URL = WIKI_BASE_URL + "/wiki/";
-	private HttpsURLConnection httpsURLConnection;
+	final String YEAR_PATTERN = "([0-9]{3,4}[\\s])([–])([\\s])";
 
 	public UpdateStoryService() {
 		super("IntentService");
-	}
-
-	private String extractStoryURL(String summary) {
-
-		org.jsoup.nodes.Document doc = Jsoup.parse(summary);
-
-		Elements links = doc.select("a[href]");
-		String storyLink = null;
-		for (int z = 0; z < links.size(); z++) {
-			if (links.get(z).hasAttr("href")
-					&& links.get(z).text().equals("more..."))
-				storyLink = links.get(z).attr("href");
-		}
-
-		return storyLink;
-	}
-
-	/**
-	 * Removes unwanted characters from the text
-	 * 
-	 * @param strSummary
-	 *            the Text to perform the replace on
-	 * @param widgetType
-	 * @return the cleaned String
-	 */
-	private String cleanupSummary(String strSummary, long widgetType) {
-		strSummary = strSummary.replace('￼', '\0');
-		strSummary = strSummary.replace('\n', '\0');
-		// remove the unicode character that are inserted
-		strSummary = strSummary.replaceAll("[\u0000]", "");
-
-		if (widgetType == WikiWidgetActivity.TODAY_HISTORY_OPTION) {
-			String temp[] = strSummary.split("More anniversaries:");
-			strSummary = temp[0] + "\nTap to see more..";
-		} else if (widgetType == WikiWidgetActivity.FEATURED_OPTION) {
-			String temp[] = strSummary.split("\\(more...\\)");
-			strSummary = temp[0] + "\nTap to see more..";
-		}
-
-		return strSummary;
-
 	}
 
 	@Override
 	public IBinder onBind(Intent intent) {
 		// TODO Auto-generated method stub
 		return null;
-	}
-
-	public InputStream getURLInputStream(String urlString) {
-		URL url = null;
-		try {
-			url = new URL(urlString);
-		} catch (MalformedURLException e1) {
-			System.err.println("MalformedURLException " + e1.getCause());
-			return null;
-		}
-
-		httpsURLConnection = null;
-		InputStream s2 = null;
-		System.setProperty("http.keepAlive", "false");
-		try {
-			httpsURLConnection = (HttpsURLConnection) url.openConnection();
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-			return null;
-		}
-		httpsURLConnection.setRequestProperty("Content-Type",
-				"text/plain; charset=UTF8");
-		try {
-			httpsURLConnection.connect();
-		} catch (IOException e) {
-			e.printStackTrace();
-			return null;
-		}
-		try {
-			s2 = httpsURLConnection.getInputStream();
-		} catch (IOException e) {
-			e.printStackTrace();
-			return null;
-		}
-
-		return s2;
-	}
-
-	public Document getDOM(InputStream urlInputStream) {
-		DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
-
-		DocumentBuilder builder;
-		try {
-			builder = factory.newDocumentBuilder();
-		} catch (ParserConfigurationException e) {
-			System.err
-					.println("ParserConfigurationException creating dom builder "
-							+ e.getCause());
-			return null;
-		}
-		Document dom;
-
-		try {
-			dom = builder.parse(urlInputStream);
-		} catch (SAXException e) {
-			System.err.println("SAXException parsing dom " + e.getCause());
-			e.printStackTrace();
-			return null;
-
-		} catch (IOException e) {
-			System.err.println("IOException parsing dom" + e.getCause());
-			return null;
-		}
-		try {
-			urlInputStream.close();
-		} catch (IOException e) {
-			System.err.println("IOException closing url input stream"
-					+ e.getCause());
-		}
-		httpsURLConnection.disconnect();
-		return dom;
-	}
-
-	public String[] parseFeed(Document dom) {
-		String[] story = new String[2];
-		if (dom != null) {
-
-			final String HTML_ENTRY_TAG = "entry";
-			final String HTML_TITLE_TAG = "title";
-			final String HTML_SUMMARY_TAG = "summary";
-			String val = null;
-			String summary = null;
-
-			Element root = dom.getDocumentElement();
-
-			NodeList items = root.getElementsByTagName(HTML_ENTRY_TAG);
-			int i = items.getLength() - 1;
-			// stops it breaking < 4.0
-			items.item(i).normalize();
-			Node item = items.item(i);
-			NodeList properties = item.getChildNodes();
-			for (int j = 0; j < properties.getLength(); j++) {
-				Node property = properties.item(j);
-				String name = property.getNodeName();
-				if (name.equalsIgnoreCase(HTML_TITLE_TAG)) {
-					val = property.getFirstChild().getNodeValue();
-				} else if (name.equalsIgnoreCase(HTML_SUMMARY_TAG)) {
-					for (int k = 0; k < property.getChildNodes().getLength(); k++) {
-						summary = property.getFirstChild().getNodeValue();
-					}
-				}
-			}
-
-			story[0] = val;
-			story[1] = summary;
-		} else {
-			story = null;
-		}
-		return story;
 	}
 
 	@Override
@@ -226,156 +77,129 @@ public class UpdateStoryService extends IntentService {
 		// load in the sharefprefs to see the update settings.
 		SharedPreferences settings = this.getSharedPreferences(
 				WikiWidgetActivity.SHARED_PREF_NAME, MODE_PRIVATE);
-		boolean wifiOnly = settings.getBoolean(
-				WikiWidgetActivity.WIFI_MOBILE_KEY, false);
-		long widgetTypeLong = settings.getLong(
+
+		long settingsWidgetType = settings.getLong(
 				WikiWidgetActivity.WIDGET_TYPE_KEY, 0);
 
 		ConnectivityManager connManager = (ConnectivityManager) getSystemService(CONNECTIVITY_SERVICE);
-		NetworkInfo wifiInfo = connManager
-				.getNetworkInfo(ConnectivityManager.TYPE_WIFI);
-		NetworkInfo mobileInfo = connManager
-				.getNetworkInfo(ConnectivityManager.TYPE_MOBILE);
-
-		if ((mobileInfo.isConnected() && !wifiOnly) || wifiInfo.isConnected()) {
-
+		if (connManager != null) {
+			NetworkInfo wifiInfo = connManager
+					.getNetworkInfo(ConnectivityManager.TYPE_WIFI);
+			NetworkInfo mobileInfo = connManager
+					.getNetworkInfo(ConnectivityManager.TYPE_MOBILE);
+			long savedWidgetType;
 			for (int i = 0; i < allWidgetIds.length; i++) {
-				long widgetType = getTypeById(getApplicationContext(),
-						allWidgetIds[i], widgetTypeLong);
-				System.out.println("WikiWidgetActivity.FEATURED_OPTION "
-						+ WikiWidgetActivity.FEATURED_OPTION);
-				String SELECTED_URL;
-				if (widgetType == WikiWidgetActivity.FEATURED_OPTION) {
-					SELECTED_URL = WIKI_FEATURED_ARTICLE_PATH;
-				} else if (widgetType == WikiWidgetActivity.TODAY_HISTORY_OPTION) {
-					SELECTED_URL = WIKI_TODAY_IN_HISTORY_PATH;
-				} else {
-					SELECTED_URL = WIKI_BASE_URL;
+				boolean wifiOnly = false;
+				boolean configDone = true;
+				// for compat reasons need to check both
+				if (settings
+						.contains((allWidgetIds[i]
+								+ WikiWidgetActivity.NETWORK_TYPE_PREF + WikiWidgetActivity.APP_EXTENSION))) {
+					wifiOnly = settings.getBoolean(allWidgetIds[i]
+							+ WikiWidgetActivity.NETWORK_TYPE_PREF
+							+ WikiWidgetActivity.APP_EXTENSION, false);
+					Log.w("UpdateStory", "WDW CONTAINS NETWORKPREF " + wifiOnly);
+				}else{
+					Log.w("UpdateStory", "CONFIG NOT DONE");
+					configDone = false;
 				}
 
-				RemoteViews views = new RemoteViews(
-						thisWidget.getPackageName(),
-						R.layout.wikiwidgetlayout_background);
+				if ((((mobileInfo != null && mobileInfo.isConnected()) && !wifiOnly) || (wifiInfo != null && wifiInfo
+						.isConnected())) && configDone) {
 
-				InputStream urlInputStream = getURLInputStream(SELECTED_URL);
-
-				String[] story = parseFeed(getDOM(urlInputStream));
-
-				if (story != null) {
-
-					String storyURL;
-					if (widgetType == WikiWidgetActivity.FEATURED_OPTION) {
-						storyURL = extractFeaturedArticleURL(story);
+					if (settings.contains(allWidgetIds[i]
+							+ WikiWidgetActivity.WIDGET_TYPE_PREF
+							+ WikiWidgetActivity.APP_EXTENSION)) {
+						savedWidgetType = settings.getLong(allWidgetIds[i]
+								+ WikiWidgetActivity.WIDGET_TYPE_PREF
+								+ WikiWidgetActivity.APP_EXTENSION, -1);
+						Log.v("UpdateStory", allWidgetIds[i]
+								+ " WDW CONTAINS TYPEPREF " + savedWidgetType);
 					} else {
-						storyURL = generateTodayInHistoryURL();
+						// new widget so set as settingsWidgetType and record
+						SharedPreferences.Editor settingsEditor = settings
+								.edit();
+						settingsEditor.putLong(allWidgetIds[i]
+								+ WikiWidgetActivity.WIDGET_TYPE_PREF
+								+ WikiWidgetActivity.APP_EXTENSION,
+								settingsWidgetType);
+						settingsEditor.commit();
+						savedWidgetType = settingsWidgetType;
+						Log.v("UpdateStory", allWidgetIds[i]
+								+ " WDW DOESNT CONTAIN TYPEPREF "
+								+ savedWidgetType);
+
 					}
-					Intent browserIntent = new Intent(Intent.ACTION_VIEW,
-							Uri.parse(storyURL));
-					PendingIntent openStory = PendingIntent.getActivity(
-							getBaseContext(), 0, browserIntent, 0);
+					WikiWidgetHandler wwh = null;
 
-					views.setOnClickPendingIntent(R.id.storySummary, openStory);
+					if (savedWidgetType == WikiWidgetActivity.FEATURED_OPTION) {
+						wwh = new FeaturedArticleHandler();
 
-					Spanned summary = Html.fromHtml(story[SUMMARY_INDEX], null,
-							null);
+					} else if (savedWidgetType == WikiWidgetActivity.TODAY_HISTORY_OPTION) {
+						wwh = new OnThisDayHandler();
 
-					String strSummary = cleanupSummary(summary.toString(),
-							widgetType);
-
-					if (widgetType == WikiWidgetActivity.TODAY_HISTORY_OPTION) {
-						strSummary = formatTodayInHistoryText(strSummary);
+					} else {
+						Log.e("UpdateStory", "WDW SELECTED_URL UNKNOWN "
+								+ savedWidgetType);
+						return;
 					}
 
-					// update labels
-					views.setTextViewText(R.id.storyHeading, story[TITLE_INDEX]);
-					views.setTextViewText(R.id.storySummary, strSummary);
+					HttpsURLConnection connection = wwh.getHTTPSConnection();
 
-					// Tell the AppWidgetManager to perform an update on the
-					// current
-					appWidgetManager.updateAppWidget(allWidgetIds[i], views);
+					if (connection != null) {
+						InputStream urlInputStream = wwh
+								.getURLInputStream(connection);
+						if (urlInputStream != null) {
+							Document wikiDocument = wwh.getDOM(urlInputStream,
+									connection);
+							if (wikiDocument != null) {
+								String[] story = wwh.parseFeed(wikiDocument);
+								if (story != null) {
+									String storyURL = wwh
+											.generateClickURL(story[1]);
+									Intent browserIntent = new Intent(
+											Intent.ACTION_VIEW,
+											Uri.parse(storyURL));
+									PendingIntent openStory = PendingIntent
+											.getActivity(getBaseContext(), 0,
+													browserIntent, 0);
+
+									RemoteViews views = new RemoteViews(
+											thisWidget.getPackageName(),
+											R.layout.wikiwidgetlayout_background);
+
+									views.setOnClickPendingIntent(
+											R.id.storySummary, openStory);
+
+									Spanned summary = Html.fromHtml(
+											story[SUMMARY_INDEX], null, null);
+
+									String strSummary = wwh
+											.cleanupSummary(summary.toString());
+
+									// update labels
+									views.setTextViewText(R.id.storyHeading,
+											story[TITLE_INDEX]);
+									views.setTextViewText(R.id.storySummary,
+											strSummary);
+
+									// Tell the AppWidgetManager to perform an
+									// update on
+									// the
+									// current
+									appWidgetManager.updateAppWidget(
+											allWidgetIds[i], views);
+
+								}
+							}
+
+						}
+						connection.disconnect();
+
+					}
+
 				}
-
 			}
 		}
-		stopSelf();
-
-	}
-
-	private long getTypeById(Context context, int widgetId, long widgetTypeLong) {
-
-		SharedPreferences settings = context.getSharedPreferences(
-				WikiWidgetActivity.SHARED_PREF_NAME, Context.MODE_PRIVATE);
-
-		String widgetIdStr = Integer.toString(widgetId);
-
-		long widgetType = settings.getLong(widgetIdStr, -1);
-		// new widget
-		if (widgetType == -1) {
-			SharedPreferences.Editor settingsEditor = settings.edit();
-			settingsEditor.putLong(widgetIdStr, widgetTypeLong);
-			settingsEditor.commit();
-			System.out.println("NOT FOUND" + widgetId + widgetTypeLong);
-		} else {
-			System.out.println("found " + widgetTypeLong);
-		}
-
-		return widgetType;
-
-	}
-
-	private String formatTodayInHistoryText(String strSummary) {
-		LinkedList<String> yearToItem;
-		yearToItem = insertNewlines(strSummary);
-
-		String[] s = strSummary.split("([0-9][0-9][0-9][0-9][\\s-])");
-
-		strSummary = "";
-		for (int j = 0; j < s.length; j++) {
-			if (j > 0) {
-				strSummary += yearToItem.get(j - 1) + s[j] + "\n";
-			} else {
-				strSummary = s[j] + "\n";
-			}
-		}
-		return strSummary;
-	}
-
-	private String generateTodayInHistoryURL() {
-		Calendar calendar = Calendar.getInstance();
-		SimpleDateFormat month = new SimpleDateFormat("MMMMMMMMM");
-		String monthName = month.format(calendar.getTime());
-		SimpleDateFormat day = new SimpleDateFormat("dd");
-		String dayName = day.format(calendar.getTime());
-
-		return WIKI_SLASH_WIKI_URL + monthName + "_" + dayName;
-	}
-
-	private LinkedList<String> insertNewlines(String strSummary) {
-
-		LinkedList<String> yearToItem = new LinkedList<String>();
-
-		Pattern years = Pattern.compile("([0-9][0-9][0-9][0-9][\\s-])");
-		Matcher m = years.matcher(strSummary);
-		while (m.find()) {
-			yearToItem.add(m.group(0));
-		}
-
-		return yearToItem;
-
-	}
-
-	private String extractFeaturedArticleURL(String[] story) {
-
-		String storyLink = extractStoryURL(story[SUMMARY_INDEX]);
-
-		String storyURL = null;
-		if (storyLink != null) {
-			storyURL = WIKI_BASE_URL + storyLink;
-		} else {
-			storyURL = WIKI_BASE_URL;
-			System.err.println("Unable to get URL for the complete article");
-		}
-
-		return storyURL;
 	}
 }
