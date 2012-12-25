@@ -24,7 +24,7 @@ public class OnThisDayHandler extends WikiWidgetHandler {
 		strSummary = "";
 		for (int j = 0; j < s.length; j++) {
 			if (j > 0) {
-				strSummary += yearToItem.get(j - 1) + "\n" + s[j] + "\n";
+				strSummary += yearToItem.get(j - 1) + "- " + s[j] + "\n";
 			} else {
 				strSummary = s[j].trim() + ".\n";
 			}

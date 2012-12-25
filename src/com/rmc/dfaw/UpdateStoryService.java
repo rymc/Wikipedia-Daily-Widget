@@ -98,9 +98,7 @@ public class UpdateStoryService extends IntentService {
 					wifiOnly = settings.getBoolean(allWidgetIds[i]
 							+ WikiWidgetActivity.NETWORK_TYPE_PREF
 							+ WikiWidgetActivity.APP_EXTENSION, false);
-					Log.w("UpdateStory", "WDW CONTAINS NETWORKPREF " + wifiOnly);
 				}else{
-					Log.w("UpdateStory", "CONFIG NOT DONE");
 					configDone = false;
 				}
 

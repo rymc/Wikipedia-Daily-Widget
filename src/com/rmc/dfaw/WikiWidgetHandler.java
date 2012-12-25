@@ -119,7 +119,7 @@ public class WikiWidgetHandler {
 			Log.e("UpdateStory",
 					"IOException closing url input stream" + e.getCause());
 		}
-	//	builder.reset();
+		// builder.reset();
 
 		return dom;
 	}
@@ -177,12 +177,10 @@ public class WikiWidgetHandler {
 		strSummary = strSummary.replaceAll("\\(pictured\\)", "");
 		return strSummary;
 	}
-	
-	
-	public String generateClickURL(String summary){
-		return summary;
-		
-	}
 
+	public String generateClickURL(String summary) {
+		return summary;
+
+	}
 
 }
