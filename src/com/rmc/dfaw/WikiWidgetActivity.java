@@ -36,7 +36,7 @@ public class WikiWidgetActivity extends Activity {
 		setContentView(R.layout.main);
 		setResult(RESULT_CANCELED);
 		// get checkbox
-		CheckBox wifiOnlyCB = (CheckBox) findViewById(R.id.checkBox1);
+		CheckBox wifiOnlyCB = (CheckBox) findViewById(R.id.wifiUpdate);
 
 		// check if setting exists already
 		SharedPreferences settings = this.getSharedPreferences(

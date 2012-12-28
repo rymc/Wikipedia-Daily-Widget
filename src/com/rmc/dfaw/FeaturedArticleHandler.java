@@ -7,7 +7,7 @@ import android.util.Log;
 
 public class FeaturedArticleHandler extends WikiWidgetHandler {
 	final static String WIKI_FEATURED_ARTICLE_PATH = "https://en.wikipedia.org/w/api.php?action=featuredfeed&feed=featured&feedformat=atom";
-
+	final String articleEndText = "Full article...";
 	public FeaturedArticleHandler() {
 		super(WIKI_FEATURED_ARTICLE_PATH);
 
@@ -21,7 +21,7 @@ public class FeaturedArticleHandler extends WikiWidgetHandler {
 		String storyLink = null;
 		for (int z = 0; z < links.size(); z++) {
 			if (links.get(z).hasAttr("href")
-					&& links.get(z).text().equals("Full article...")) {
+					&& links.get(z).text().equals(articleEndText)) {
 				storyLink = links.get(z).attr("href");
 			}
 		}
@@ -48,7 +48,7 @@ public class FeaturedArticleHandler extends WikiWidgetHandler {
 
 	public String cleanupSummary(String strSummary) {
 		strSummary = super.cleanupSummary(strSummary);
-		String temp[] = strSummary.split("\\(more...\\)");
+		String temp[] = strSummary.split("\\("+articleEndText+"\\)");
 		return strSummary = temp[0] + "\nTap to see more..";
 	}
 }
