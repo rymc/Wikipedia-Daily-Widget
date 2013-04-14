@@ -43,7 +43,7 @@
         android:shadowRadius="1"
         android:singleLine="false"
         android:textColor="#000000"
-        android:textSize="12dp"
+        android:textSize="13dp"
         android:typeface="serif"
         android:width="100dp"/>
 

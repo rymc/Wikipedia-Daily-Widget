@@ -48,7 +48,9 @@ public class FeaturedArticleHandler extends WikiWidgetHandler {
 
 	public String cleanupSummary(String strSummary) {
 		strSummary = super.cleanupSummary(strSummary);
-		String temp[] = strSummary.split("\\("+articleEndText+"\\)");
-		return strSummary = temp[0] + "\nTap to see more..";
+		String temp[] = strSummary.split("\\(Full.article");
+        System.out.println("****** RYAN 0"+temp[0]);
+
+        return temp[0] + "\nTap to see more..";
 	}
 }
