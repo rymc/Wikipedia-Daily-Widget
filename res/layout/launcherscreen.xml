@@ -7,21 +7,22 @@
     <RelativeLayout
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_gravity="left|center_vertical">
+        android:layout_gravity="left|center_vertical"
+        android:paddingLeft="20dp"
+        android:paddingRight="20dp" >
 
         <TextView
             android:id="@+id/textView1"
-            android:layout_width="484dp"
+            android:layout_width="fill_parent"
             android:layout_height="wrap_content"
+            android:layout_alignParentBottom="true"
+            android:layout_alignParentLeft="true"
+            android:layout_alignParentRight="true"
+            android:layout_alignParentTop="true"
+            android:layout_margin="10dp"
             android:gravity="center_horizontal"
             android:includeFontPadding="true"
-            android:text="@string/intro_text"
-            android:layout_alignParentLeft="true"
-            android:layout_alignParentTop="true"
-            android:layout_alignParentBottom="true"
-            android:layout_alignParentRight="true"
-            android:layout_margin="10dp"/>
-
+            android:text="@string/intro_text" />
         
     </RelativeLayout>
 

@@ -24,12 +24,15 @@ public class OnThisDayHandler extends WikiWidgetHandler {
 		strSummary = "";
 		for (int j = 0; j < s.length; j++) {
 			if (j > 0) {
-				strSummary += yearToItem.get(j - 1) + "- " + s[j] + "\n";
+				strSummary += yearToItem.get(j - 1) + "- " + s[j];
+				//only add a newline if it doesn't already have one.
+				if(!s[j].contains("\n")){
+					strSummary += "\n";
+				}
             } else {
                 strSummary = s[j].trim() + ".\n";
 			}
 		}
-        System.out.println("Ryan: "+strSummary);
 		return strSummary;
 	}
 
