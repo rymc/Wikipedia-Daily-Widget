@@ -95,7 +95,6 @@ public class WikiWidgetHandler {
 				urlInputStream.close();
 				s.disconnect();
 			} catch (IOException e1) {
-				// TODO Auto-generated catch block
 				e1.printStackTrace();
 			}
 			return null;
@@ -106,7 +105,6 @@ public class WikiWidgetHandler {
 				urlInputStream.close();
 				s.disconnect();
 			} catch (IOException e1) {
-				// TODO Auto-generated catch block
 				e1.printStackTrace();
 			}
 			return null;
