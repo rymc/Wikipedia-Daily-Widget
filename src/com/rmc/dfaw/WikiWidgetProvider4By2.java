@@ -8,7 +8,6 @@ import android.content.SharedPreferences;
 public class WikiWidgetProvider4By2 extends WikiWidgetProviderBase {
 	
 	public void onDisabled(Context context) {
-		System.out.println("DISABLED");
 		ComponentName thisWidget = new ComponentName(
 				context.getApplicationContext(), WikiWidgetProviderBase.class);
 
@@ -17,8 +16,6 @@ public class WikiWidgetProvider4By2 extends WikiWidgetProviderBase {
 				WikiWidgetActivity.SHARED_PREF_NAME, context.MODE_PRIVATE);
 		
 		int [] ids = AppWidgetManager.getInstance(context).getAppWidgetIds(thisWidget);
-		System.out.println(ids.length +" ON DIABLED");
-
 	}
 
 
